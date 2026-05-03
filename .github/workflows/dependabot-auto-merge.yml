@@ -1,0 +1,55 @@
+# Automatic Dependabot PR merge when CI passes
+
+name: Dependabot Auto-Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # This job only runs for PRs from Dependabot
+  dependabot:
+    runs-on: ubuntu-latest
+    # Only run for Dependabot PRs
+    if: github.actor == 'dependabot[bot]'
+    outputs:
+      ci_passed: ${{ steps.ci_check.outputs.ci_passed }}
+    steps:
+      - name: Wait for CI to pass
+        id: ci_check
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          
+          # Wait up to 30 minutes for CI to pass
+          for i in {1..60}; do
+            # Check if all required checks passed
+            STATUS=$(gh pr checks $PR_NUMBER --jq '.conclusion' 2>/dev/null || echo "pending")
+            
+            if [ "$STATUS" == "success" ]; then
+              echo "ci_passed=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            
+            echo "Waiting for CI... attempt $i/60"
+            sleep 30
+          done
+          
+          echo "ci_passed=false" >> $GITHUB_OUTPUT
+          exit 1
+
+  auto-merge:
+    needs: dependabot
+    runs-on: ubuntu-latest
+    if: needs.dependabot.outputs.ci_passed == 'true'
+    steps:
+      - name: Merge the PR
+        run: |
+          gh pr merge --squash --admin --delete-branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
