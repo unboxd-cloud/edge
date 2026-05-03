@@ -1,0 +1,44 @@
+---
+# MicroCloud Edge Platform - Default Variables
+# These variables are used by the Ansible playbooks
+#
+
+# Cluster configuration
+cluster_name: "edge-cloud"
+cluster_min_nodes: 3
+cluster_max_nodes: 5
+
+# Network configuration
+ovn_network_name: "ovn-net"
+ovn_bridge: "br0"
+ovn_ipv4_range: "10.168.1.1/24"
+dns_domain: "microcloud.local"
+
+# Storage configuration
+storage_pool_name: "ceph-pool"
+storage_driver: "ceph"
+local_pool_name: "local-pool"
+local_pool_path: "/var/lib/lxd/storage-pools/local"
+default_storage_pool: "local-pool"
+ceph_cluster_name: "ceph"
+
+# LXD configuration
+lxd_https_address: "0.0.0.0:8443"
+lxd_trust_password: ""
+
+# Remote access password (should be overridden)
+remote_access_password: ""
+
+# Test instances
+create_test_instances: false
+
+# Snap channel
+snap_channel: "latest/stable"
+
+# Firewall configuration
+configure_firewall: true
+firewall_ports:
+  - 8443  # MicroCloud API
+  - 8444  # LXD API
+  - 3300  # MicroCeph
+  - 6642  # MicroOVN

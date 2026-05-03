@@ -1,0 +1,54 @@
+# MicroCloud Edge Platform - Ansible Inventory
+# 
+# Add your cluster nodes below. Each node should have:
+# - ansible_host: The IP address or hostname
+# - ansible_user: The SSH user (usually 'ubuntu' or 'root')
+#
+# Group Structure:
+# - microcloud_initiator: The first node that initializes the cluster
+# - microcloud_workers: Additional cluster nodes
+# - all: All nodes (combined)
+#
+
+[all:vars]
+# SSH connection settings
+ansible_python_interpreter=/usr/bin/python3
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+[microcloud_initiator]
+# Primary node - initializes the cluster
+node01 ansible_host=10.0.1.101 ansible_user=ubuntu
+
+[microcloud_workers]
+# Additional nodes - join the cluster
+node02 ansible_host=10.0.1.102 ansible_user=ubuntu
+node03 ansible_host=10.0.1.103 ansible_user=ubuntu
+
+[all:children]
+microcloud_initiator
+microcloud_workers
+
+[all:vars]
+# Cluster configuration
+cluster_name=edge-cloud
+cluster_min_nodes=3
+cluster_max_nodes=3
+
+# Network configuration
+ovn_network_name=ovn-net
+ovn_bridge=br0
+ovn_ipv4_range=10.168.1.1/24
+
+# Storage configuration
+storage_pool_name=ceph-pool
+local_pool_name=local-pool
+
+# LXD configuration
+lxd_https_address=0.0.0.0:8443
+# lxd_trust_password= # Set in vault or environment
+
+# Remote access
+# remote_access_password= # Set in vault or environment
+
+# Whether to create test instances
+create_test_instances=false

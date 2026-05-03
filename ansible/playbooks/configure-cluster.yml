@@ -1,0 +1,152 @@
+---
+# MicroCloud Edge Platform - Configure Cluster Playbook
+# Configure storage, networks, and instance settings after cluster setup
+#
+# Usage: ansible-playbook -i inventory/hosts playbooks/configure-cluster.yml
+#
+
+- name: Configure MicroCloud Cluster
+  hosts: microcloud_initiator
+  become: true
+  gather_facts: false
+  vars:
+    storage_driver: ceph
+    network_driver: ovn
+    default_pool_size: 10GiB
+  
+  tasks:
+    - name: Create Ceph storage pool
+      ansible.builtin.shell: |
+        lxc storage create {{ storage_pool_name | default('ceph-pool') }} {{ storage_driver }} \
+          cluster=true \
+          source={{ ceph_cluster_name | default('ceph') }}
+      changed_when: true
+      ignore_errors: yes
+
+    - name: Create directory storage pool
+      ansible.builtin.shell: |
+        lxc storage create {{ local_pool_name | default('local-pool') }} dir \
+          source={{ local_pool_path | default('/var/lib/lxd/storage-pools/local') }}
+      changed_when: true
+      ignore_errors: yes
+
+    - name: Create OVN network
+      ansible.builtin.shell: |
+        lxc network create {{ ovn_network_name | default('ovn-net') }} \
+          network_type=ovn \
+          bridge={{ ovn_bridge | default('br0') }} \
+          ipv4_address={{ ovn_ipv4_range | default('10.168.1.1/24') }} \
+          ipv4_nat=true \
+          dns_domain={{ dns_domain | default('microcloud.local') }}
+      changed_when: true
+      ignore_errors: yes
+
+    - name: Configure default storage pool
+      ansible.builtin.shell: |
+        lxc config set storage.images.default_pool={{ default_storage_pool | default('local-pool') }}
+      changed_when: true
+      ignore_errors: yes
+
+    - name: Create default profile with network
+      ansible.builtin.shell: |
+        lxc profile device add default eth0 nic \
+          network={{ ovn_network_name | default('ovn-net') }} \
+          nictype=generic
+      changed_when: true
+      ignore_errors: yes
+
+    - name: Configure cluster configuration
+      ansible.builtin.shell: |
+        lxc config set cluster.images_auto_update_cached=true
+        lxc config set cluster.images_auto_update_interval=6h
+      changed_when: true
+      ignore_errors: yes
+
+    - name: Create default image aliases
+      ansible.builtin.shell: |
+        lxc remote alias add images images.linuxcontainers.org
+        lxc remote alias add ubuntu https://images.linuxcontainers.org
+      changed_when: true
+      ignore_errors: yes
+
+    - name: Add trust password for remote access
+      ansible.builtin.shell: |
+        lxc config set core.trust_password='{{ remote_access_password | default('') }}'
+      changed_when: true
+      when: remote_access_password is defined and remote_access_password|length > 0
+      ignore_errors: yes
+
+    - name: Display cluster configuration
+      ansible.builtin.debug:
+        msg: |
+          Cluster configuration complete!
+          
+          Storage Pools:
+          - {{ storage_pool_name | default('ceph-pool') }} ({{ storage_driver }})
+          - {{ local_pool_name | default('local-pool') }} (dir)
+          
+          Networks:
+          - {{ ovn_network_name | default('ovn-net') }} (OVN)
+          
+          Next steps:
+          - lxc launch ubuntu:22.04 my-container
+          - lxc launch ubuntu:22.04 my-vm --vm
+
+
+- name: Configure Worker Nodes
+  hosts: microcloud_workers
+  become: true
+  gather_facts: false
+  
+  tasks:
+    - name: Ensure LXD is running
+      ansible.builtin.service:
+        name: snap.lxd.daemon
+        state: started
+    
+    - name: Wait for node to be ready
+      ansible.builtin.pause:
+        seconds: 10
+    
+    - name: Get node info
+      ansible.builtin.debug:
+        msg: "Worker node {{ inventory_hostname }} configured"
+
+
+- name: Verify Cluster Health
+  hosts: microcloud_initiator
+  become: false
+  gather_facts: false
+  
+  tasks:
+    - name: Get cluster members
+      ansible.builtin.shell: |
+        microcloud status
+      register: cluster_status
+      changed_when: false
+
+    - name: Display cluster status
+      ansible.builtin.debug:
+        var: cluster_status.stdout_lines
+
+
+- name: Create Test Instances
+  hosts: microcloud_initiator
+  become: false
+  gather_facts: false
+  vars:
+    test_instance_count: 1
+  
+  tasks:
+    - name: Create test containers
+      ansible.builtin.shell: |
+        lxc launch ubuntu:22.04 test-container-{{ item }}
+      loop: "{{ range(1, test_instance_count + 1)|list }}"
+      changed_when: true
+      ignore_errors: yes
+      when: create_test_instances | default(false) | bool
+
+    - name: Display test instance info
+      ansible.builtin.debug:
+        msg: "Test instances created (if enabled)"
+      when: create_test_instances | default(false) | bool

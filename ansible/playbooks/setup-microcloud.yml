@@ -1,0 +1,175 @@
+---
+# MicroCloud Edge Platform - Main Setup Playbook
+# This playbook automates the deployment of MicroCloud on all cluster nodes
+#
+# Usage: ansible-playbook -i inventory/hosts playbooks/setup-microcloud.yml
+#
+
+- name: Setup MicroCloud Edge Platform
+  hosts: all
+  become: true
+  gather_facts: true
+  vars_files:
+    - ../vars/default.yml
+  
+  tasks:
+    - name: Verify Ubuntu version
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['distribution'] == 'Ubuntu'
+          - ansible_facts['distribution_major_version']|int >= 22
+        fail_msg: "This playbook requires Ubuntu 22.04 or newer"
+        success_msg: "Ubuntu {{ ansible_facts['distribution_version'] }} detected"
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      changed_when: false
+
+    - name: Install required system packages
+      ansible.builtin.apt:
+        name:
+          - snapd
+          - bridge-utils
+          - net-tools
+          - iputils-ping
+          - curl
+          - jq
+        state: present
+
+    - name: Configure kernel modules
+      ansible.builtin.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - br_netfilter
+        - overlay
+
+    - name: Configure sysctl settings
+      ansible.builtin.copy:
+        content: |
+          net.ipv4.ip_forward=1
+          net.bridge.bridge-nf-call-iptables=1
+          net.ipv4.conf.default.rp_filter=1
+        dest: /etc/sysctl.d/99-microcloud.conf
+        mode: '0644'
+      notify: Apply sysctl settings
+
+    - name: Apply sysctl settings
+      ansible.builtin.shell:
+        cmd: sysctl -p /etc/sysctl.d/99-microcloud.conf
+      changed_when: true
+
+    - name: Ensure snapd service is running
+      ansible.builtin.service:
+        name: snapd
+        state: started
+        enabled: yes
+
+    - name: Refresh snap core
+      community.general.snap:
+        name: core
+        state: classic
+      ignore_errors: yes
+
+    - name: Install MicroCloud snaps
+      community.general.snap:
+        name: "{{ item }}"
+        state: present
+        classic: yes
+        channel: latest/stable
+      loop:
+        - microcloud
+        - lxd
+        - microceph
+        - microovn
+
+    - name: Wait for snaps to be ready
+      ansible.builtin.pause:
+        seconds: 10
+
+    - name: Configure LXD
+      ansible.builtin.shell: |
+        lxc config set core.trust_password={{ lxd_trust_password | default('') }} 2>/dev/null || true
+        lxc config set core.https_address={{ lxd_https_address | default('0.0.0.0:8443') }} 2>/dev/null || true
+      changed_when: true
+      ignore_errors: yes
+
+    - name: Setup firewall rules (if ufw is present)
+      community.general.ufw:
+        state: enabled
+        policy: allow
+      ignore_errors: yes
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Allow MicroCloud ports in firewall
+      community.general.ufw:
+        rule: allow
+        port: '{{ item }}'
+        proto: tcp
+      loop:
+        - 8443
+        - 8444
+        - 3300
+        - 6642
+      ignore_errors: yes
+      when: ansible_facts['os_family'] == 'Debian'
+
+  handlers:
+    - name: Apply sysctl settings
+      ansible.builtin.shell:
+        cmd: sysctl -p /etc/sysctl.d/99-microcloud.conf
+
+
+- name: Initialize MicroCloud Cluster (first node only)
+  hosts: microcloud_initiator
+  become: true
+  gather_facts: false
+  vars_files:
+    - ../vars/default.yml
+  
+  tasks:
+    - name: Check if cluster already initialized
+      ansible.builtin.shell:
+        cmd: microcloud status 2>/dev/null | head -5
+      register: cluster_status
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Initialize MicroCloud cluster
+      ansible.builtin.shell: |
+        microcloud init --bootstrap-min={{ cluster_min_nodes }} --bootstrap-max={{ cluster_max_nodes }}
+      when: cluster_status.rc != 0
+      changed_when: true
+
+    - name: Wait for cluster to be ready
+      ansible.builtin.pause:
+        seconds: 30
+
+    - name: Get cluster info
+      ansible.builtin.debug:
+        msg: "Cluster initialized. Use 'microcloud status' to view details."
+
+
+- name: Join Additional Nodes to Cluster
+  hosts: microcloud_workers
+  become: true
+  gather_facts: false
+  vars_files:
+    - ../vars/default.yml
+  
+  tasks:
+    - name: Wait for cluster to be ready (join via init)
+      ansible.builtin.shell: |
+        microcloud init
+      changed_when: true
+      ignore_errors: yes
+
+    - name: Wait for node to join
+      ansible.builtin.pause:
+        seconds: 30
+
+    - name: Confirm node joined
+      ansible.builtin.debug:
+        msg: "Node {{ inventory_hostname }} joined the cluster"

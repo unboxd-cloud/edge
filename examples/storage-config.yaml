@@ -1,0 +1,181 @@
+# Storage Configuration for MicroCloud Edge Platform
+#
+# Example storage pool configurations for different use cases.
+# Apply with: lxc config profile create < profile-name && lxc config profile edit < profile-name < storage-config.yaml
+#
+
+# ============================================================================
+# Configuration 1: Default Storage (Local)
+# ============================================================================
+# Use for: Development, testing, single-node deployments
+name: default
+description: Default local storage pool
+config:
+  source: /var/lib/lxd/storage-pools/default
+  driver: dir
+devices:
+  root:
+    path: /
+    pool: default
+    type: disk
+
+# ============================================================================
+# Configuration 2: Ceph-backed Storage
+# ============================================================================
+# Use for: Production multi-node clusters with distributed storage
+# Note: Requires MicroCeph to be initialized
+name: ceph-production
+description: Distributed Ceph storage pool for production
+config:
+  driver: ceph
+  ceph.cluster_name: ceph
+  ceph.osd.pg_num: 128
+  ceph.osd.pool_name: default
+  ceph.rbd.clone_copy: "true"
+devices:
+  root:
+    path: /
+    pool: ceph-production
+    type: disk
+
+# ============================================================================
+# Configuration 3: Btrfs Storage
+# ============================================================================
+# Use for: Performance-sensitive workloads with snapshots
+name: btrfs-performance
+description: Btrfs storage pool with compression
+config:
+  driver: btrfs
+  source: /var/lib/lxd/storage-pools/btrfs
+  btrfs.mount_options: compress=zstd,space_cache=v2
+devices:
+  root:
+    path: /
+    pool: btrfs-performance
+    type: disk
+
+# ============================================================================
+# Configuration 4: LVM Storage
+# ============================================================================
+# Use for: Traditional storage with LVM
+name: lvm-storage
+description: LVM-backed storage pool
+config:
+  driver: lvm
+  source: /dev/vg1/lxd
+  lvm.thin_pool_name: thinpool
+  lvm.use_thinpool: "true"
+devices:
+  root:
+    path: /
+    pool: lvm-storage
+    type: disk
+
+# ============================================================================
+# Storage Profile Examples
+# ============================================================================
+
+# Profile 1: High Performance
+# Uses local SSD storage for maximum IOPS
+name: high-performance
+description: High performance profile with local SSD storage
+config:
+  limits.cpu: "4"
+  limits.memory: 8GiB
+  security.nesting: "true"
+  security.privileged: "false"
+devices:
+  root:
+    path: /
+    pool: default  # Use local fast storage
+    type: disk
+  eth0:
+    name: eth0
+    network: ovn-net
+    type: nic
+
+# Profile 2: Large Workload
+# Higher resource limits for demanding workloads
+name: large-workload
+description: Large workload profile with high resources
+config:
+  limits.cpu: "8"
+  limits.memory: 16GiB
+  limits.swap: "true"
+  security.nesting: "true"
+devices:
+  root:
+    path: /
+    pool: Ceph-production  # Distributed storage
+    type: disk
+  eth0:
+    name: eth0
+    network: ovn-net
+    type: nic
+
+# Profile 3: Edge Device
+# Optimized for lightweight edge deployments
+name: edge-device
+description: Lightweight profile for edge devices
+config:
+  limits.cpu: "2"
+  limits.memory: 2GiB
+  limits.disk: 5GiB
+  security.nesting: "false"
+  security.privileged: "false"
+devices:
+  root:
+    path: /
+    pool: default
+    type: disk
+  eth0:
+    name: eth0
+    network: ovn-net
+    type: nic
+
+# Profile 4: GPU Workload
+# GPU-enabled profile for ML/Inference
+name: gpu-workload
+description: GPU-enabled profile
+config:
+  limits.cpu: "8"
+  limits.memory: 32GiB
+  limits.memory.hugepages: "true"
+  nvidia.runtime: "true"
+  nvidia.driver.capabilities: all
+  security.nesting: "true"
+devices:
+  root:
+    path: /
+    pool: default
+    type: disk
+  eth0:
+    name: eth0
+    network: ovn-net
+    type: nic
+  gpu:
+    type: gpu
+devices:
+  # Add GPU device
+  gpu:
+    type: gpu
+
+# Profile 5: Secure Workload
+# Enhanced security for sensitive workloads
+name: secure-workload
+description: Secure profile with encryption
+config:
+  security.nesting: "true"
+  security.privileged: "false"
+  security.encryption: "dynamic"
+  security.idmap.base: 100000
+  security.idmap.size: 1000000
+devices:
+  root:
+    path: /
+    pool: ceph-pool  # Use Ceph for data redundancy
+    type: disk
+  eth0:
+    name: eth0
+    network: ovn-net
+    type: nic

@@ -1,0 +1,201 @@
+# Edge Cloud Platform - Git Ignore
+
+# =============================================================================
+# Environment Files
+# =============================================================================
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Secrets (never commit)
+*.key
+*.pem
+*.cert
+*.crt
+id_rsa*
+*.ppk
+
+# =============================================================================
+# Ansible
+# =============================================================================
+
+# Ansible
+*.retry
+.ansible/
+ansible.log
+ansible.cfg.local
+
+# Inventory (keep template, not secrets)
+ansible/inventory/hosts.local
+
+# Vault password
+*.vault
+.vault_password
+
+# =============================================================================
+# Terraform (Future)
+# =============================================================================
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+.terraform.lock.hcl
+
+# =============================================================================
+# Backup Files
+# =============================================================================
+
+# Backups
+*.bak
+*.backup
+*.tar.gz
+*.backup.tar.gz
+
+# Backup directory
+backup/
+backups/
+/backup/
+
+# =============================================================================
+# Log Files
+# =============================================================================
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# System logs
+dmesg
+syslog
+
+# =============================================================================
+# Temporary Files
+# =============================================================================
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.#*
+
+# Temporary files
+/tmp/
+*.tmp
+
+# Cache
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# =============================================================================
+# Build Artifacts
+# =============================================================================
+
+# Build files
+dist/
+build/
+*.egg-info/
+.eggs/
+*.egg
+*.whl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node
+node_modules/
+package-lock.json
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+vendor/
+
+# Rust
+target/
+Cargo.lock
+
+# =============================================================================
+# IDE Files
+# =============================================================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-*
+
+# Emacs
+.project
+.settings/
+.classpath
+
+# Vim
+.*.swo
+.*.swn
+
+# =============================================================================
+# Documentation Build
+# =============================================================================
+
+# MkDocs site
+site/
+
+# Sphinx build
+_build/
+
+# Docusaurus
+.docusaurus/
+docusaurus.config.js
+
+# =============================================================================
+# Test Coverage
+# =============================================================================
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+
+# pytest
+.pytest_cache/
+
+# =============================================================================
+# Misc
+# =============================================================================
+
+# Cron backups
+cron.d/
+cron.allow
+cron.deny
+
+# Systemd
+*.service
+*.socket
+*.timer
+
+# Certificates (example)
+*.pfx
+*.p12

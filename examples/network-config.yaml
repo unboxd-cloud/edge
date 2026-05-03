@@ -1,0 +1,125 @@
+# Network Configuration for MicroCloud Edge Platform
+#
+# Network configurations for different edge deployment scenarios.
+# Apply with: lxc network create < network-name < network-config.yaml
+#
+
+# ============================================================================
+# Configuration 1: OVN Network (Default)
+# ============================================================================
+# Use for: Production multi-node clusters
+name: ovn-net
+description: Open Virtual Network for cluster communication
+config:
+  # Network type
+  bridge.driver: openvswitch
+  
+  # IPv4 configuration
+  ipv4.address: 10.168.1.1/24
+  ipv4.dhcp: "true"
+  ipv4.dhcp.ranges: 10.168.1.100-10.168.1.200
+  ipv4.nat: "true"
+  
+  # IPv6 configuration (optional)
+  # ipv6.address: fd42:ffff:ffff:ffff::1/64
+  # ipv6.nat: "true"
+  
+  # DNS
+  dns.domain: microcloud.local
+  dns.search: microcloud.local
+  dns.forwarder.address: 8.8.8.8
+  
+  # OVN specific
+  ovn.ingress_mode: routed
+  ovn.link: br0
+  
+  # Security
+  raw.dnsmasq: |
+    --ra-stateless
+    --ra-param=mtu:1400
+type: ovn
+
+# ============================================================================
+# Configuration 2: Bridge Network (Simple)
+# ============================================================================
+# Use for: Single-node or simple deployments
+name: br0-lan
+description: Bridge network for simple LAN
+config:
+  bridge.driver: native
+  bridge.external_interfaces: eth0
+  
+  ipv4.address: 10.0.0.1/24
+  ipv4.dhcp: "true"
+  ipv4.dhcp.ranges: 10.0.0.50-10.0.0.100
+  ipv4.nat: "true"
+  
+  dns.domain: edge.local
+  dns.forwarder.address: 8.8.8.8
+type: bridge
+
+# ============================================================================
+# Configuration 3: VLAN Network
+# ============================================================================
+# Use for: Segmented networks with VLAN tagging
+name: edge-vlan
+description: VLAN-tagged network for edge devices
+config:
+  vlan.id: "100"
+  vlan.tagged: br0
+  
+  ipv4.address: 10.100.1.1/24
+  ipv4.dhcp: "true"
+  ipv4.dhcp.ranges: 10.100.1.50-10.100.1.100
+  ipv4.nat: "true"
+  
+  dns.domain: edge-vlan.local
+type: ovn
+
+# ============================================================================
+# Configuration 4: Isolated Network
+# ============================================================================
+# Use for: Security-isolated workloads
+name: isolated-net
+description: Isolated network without internet access
+config:
+  ipv4.address: 172.16.0.1/24
+  ipv4.dhcp: "true"
+  ipv4.nat: "false"  # No NAT - isolated
+  
+  dns.domain: isolated.local
+  dns.forwarder.address: ""  # No DNS forwarder
+type: ovn
+
+# ============================================================================
+# Firewall Rules for Edge
+# ============================================================================
+
+# Allow SSH access to instances
+# Usage: lxc config device add <instance> proxy-eth0 proxy connect=tcp:127.0.0.1:22 connect=tcp:0.0.0.0:22
+# OR: lxc security tunnel create <instance>
+name: ssh-tunnel
+description: SSH tunnel for remote access
+config:
+  listen.tcp: 0.0.0.0:22
+  connect.tcp: 127.0.0.1:22
+  proxy_protocol: "false"
+type: proxy
+
+# ============================================================================
+# Network ACLs
+# ============================================================================
+
+# Example: Allow specific traffic between instances
+# lxc network acl create allow-internal
+# lxc network rule allow-internal ingress destination=10.168.1.0/24 protocol=tcp ports=80,443
+
+# ============================================================================
+# Load Balancer Configuration
+# ============================================================================
+
+# Example: Configure load balancing for container group
+# lxc loadbalancer create ovn-net 10.168.1.10 \
+#   target=10.168.1.100 \
+#   target=10.168.1.101 \
+#   target=10.168.1.102

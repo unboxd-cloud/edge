@@ -1,0 +1,82 @@
+# Cloud-init Configuration for Edge Cloud Instances
+#
+# This cloud-init configuration is used when creating new LXD instances.
+# It configures the instance on first boot with user data, network, and custom setup.
+#
+# Usage:
+#   lxc init ubuntu:22.04 my-instance
+#   lxc config edit my-instance < cloud-init.yaml
+#   lxc start my-instance
+#
+
+# Cloud-init configuration version
+version: cloud-init/0.1
+
+# Users to create on the instance
+users:
+  - name: ubuntu
+    # password: ""  # Default is to use SSH keys
+    ssh-authorized-keys:
+      - ssh-ed25519 AAAA... user@host  # Add your SSH public key
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    groups: sudo
+    shell: /bin/bash
+
+# Package updates and installs
+package_update: true
+package_upgrade: true
+
+packages:
+  # Base utilities
+  - curl
+  - wget
+  - git
+  - vim
+  - htop
+  - net-tools
+  - ca-certificates
+  
+  # Monitoring (optional)
+  # - prometheus-node-exporter
+  
+  # Development (optional)
+  # - build-essential
+  # - python3
+  # - docker.io
+
+# Write files to the instance
+write_files:
+  - path: /etc/cloud/cloud.cfg.d/99-custom.cfg
+    content: |
+      # Disable default root login
+      disable_root: 1
+      ssh_pwauth: 0
+    owner: root:root
+    permissions: '0644'
+  
+  - path: /opt/edge-init.sh
+    content: |
+      #!/bin/bash
+      # Edge cloud instance initialization script
+      echo "Edge cloud instance initialized at $(date)"
+    owner: root:root
+    permissions: '0755'
+
+# Run commands on first boot
+runcmd:
+  # Update CA certificates
+  - update-ca-certificates
+  
+  # Set hostname
+  - [ hostnamectl, set-hostname, "{{ instance-name }}" ]
+  
+  # Enable IP forwarding for routing (optional)
+  # - sysctl -w net.ipv4.ip_forward=1
+  
+  # Custom initialization
+  # - /opt/edge-init.sh
+
+# Phone home (report back to provisioning server)
+# phone_home:
+#   url: http://provisioning.example.com/register
+#   interval: 10s
