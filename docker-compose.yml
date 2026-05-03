@@ -1,0 +1,77 @@
+version: '3.8'
+
+# Edge Cloud Platform - Docker Compose
+# Development and testing environment for the edge cloud platform
+
+services:
+  # Development environment
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edge-cloud-dev
+    hostname: edge-dev
+    volumes:
+      - .:/workspace/project
+    working_dir: /workspace/project
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+      - EDITOR=vim
+    stdin_open: true
+    tty: true
+    networks:
+      - edge-network
+    profiles:
+      - dev
+
+  # Ansible test environment
+  ansible:
+    image: ubuntu:22.04
+    container_name: edge-cloud-ansible
+    hostname: edge-ansible
+    volumes:
+      - ./ansible:/ansible
+    working_dir: /ansible
+    command: sleep infinity
+    networks:
+      - edge-network
+    profiles:
+      - ansible
+    entrypoint: /bin/bash
+
+  # Documentation server (optional)
+  docs:
+    image: nginx:alpine
+    container_name: edge-cloud-docs
+    hostname: edge-docs
+    volumes:
+      - ./docs:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    networks:
+      - edge-network
+    profiles:
+      - docs
+
+  # Testing environment
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edge-cloud-test
+    hostname: edge-test
+    environment:
+      - TESTING=true
+    command: /bin/bash -c "echo 'Test environment ready' && sleep infinity"
+    networks:
+      - edge-network
+    profiles:
+      - test
+
+networks:
+  edge-network:
+    name: edge-cloud-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

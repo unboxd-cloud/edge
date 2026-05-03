@@ -1,0 +1,29 @@
+# Docker ignore
+.git
+.gitignore
+*.md
+LICENSE
+README.md
+.env*
+*.bak
+*.backup
+*.log
+.DS_Store
+ Thumbs.db
+.vscode/
+.idea/
+*.pyc
+__pycache__/
+.pytest_cache/
+node_modules/
+vendor/
+target/
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
