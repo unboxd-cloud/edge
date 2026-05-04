@@ -215,6 +215,58 @@ Contributions are welcome! Please read our contributing guidelines before submit
 
 This project is licensed under the Apache 2.0 License - see the LICENSE file for details.
 
+## Deployment Info (edge.unboxd.cloud)
+
+This README documents the deployed Edge Cloud Platform on edge.unboxd.cloud.
+
+### Live Services
+
+| Service | Port | HTTP | HTTPS |
+|---------|------|------|-------|
+| **Edge Console** | 8001 | ✅ | ✅:8443 |
+| **MicroCloud Agent API** | 8000 | ✅ | ✅:8443/api/* |
+| **Chat UI** | 3000 | ✅ | ✅:8443/chat/* |
+
+### Quick Access (HTTPS recommended)
+
+```bash
+# Chat UI (HTTPS)
+open https://edge.unboxd.cloud:8443
+
+# Agent health check
+curl https://edge.unboxd.cloud:8443/api/health
+
+# Documentation
+curl https://edge.unboxd.cloud:8443/docs/README.md
+```
+
+### Agent Commands
+
+```bash
+# Health check
+PYTHONPATH=src microcloud-agent health
+
+# Run workflow
+PYTHONPATH=src microcloud-agent run assess_health --environment lab
+
+# Start API server
+PYTHONPATH=src microcloud-agent serve --host 0.0.0.0 --port 8000
+
+# Chat with agent
+PYTHONPATH=src microcloud-agent chat "what workflows do you support?"
+```
+
+### Environment Variables
+
+Set these for remote SSH execution:
+
+```bash
+export MICROCLOUD_SSH_TARGET=user@ microcloud-server
+export LXC_SSH_TARGET=user@ microcloud-server
+export OPERATOR_SSH_TARGET=user@host
+export PRIVILEGE_EXEC_PREFIX=sudo
+```
+
 ## Resources
 
 - [MicroCloud Official Documentation](https://canonical.com/microcloud/docs)
