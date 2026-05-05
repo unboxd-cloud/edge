@@ -52,28 +52,18 @@ Best for: Development, testing, evaluation
 ### Step 1: Install Dependencies
 
 ```bash
-cd scripts
-sudo ./install-dependencies.sh
+sudo ./scripts/deploy-single-node-demo.sh
 ```
 
-This installs:
+This command:
 - MicroCloud snap
 - LXD snap
 - MicroCeph snap
 - MicroOVN snap
+ - boots a single-node demo deployment with non-interactive preseed
+ - prints the UI URL and follow-up trust-token command
 
-### Step 2: Initialize MicroCloud
-
-```bash
-sudo ./init-single-node.sh
-```
-
-This will:
-1. Detect available disks for storage
-2. Configure networking
-3. Initialize MicroCloud in single-node mode
-
-### Step 3: Verify Deployment
+### Step 2: Verify Deployment
 
 ```bash
 microcloud status

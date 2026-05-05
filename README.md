@@ -59,11 +59,11 @@ This project provides a complete infrastructure-as-code solution for deploying a
 ### Single Node (Development)
 
 ```bash
-# Install MicroCloud and dependencies
-sudo snap install microcloud lxd microceph microovn
+# One-command demo deployment
+sudo ./scripts/deploy-single-node-demo.sh
 
-# Initialize MicroCloud
-sudo microcloud init
+# If the machine already has initialized LXD state
+sudo ./scripts/deploy-single-node-demo.sh --purge-lxd
 ```
 
 ### Multi-Node Cluster
@@ -110,9 +110,7 @@ sudo microcloud init --bootstrap-max=3
 
 Use the provided shell scripts for manual deployment:
 ```bash
-cd scripts
-chmod +x install-dependencies.sh
-sudo ./install-dependencies.sh
+sudo ./scripts/deploy-single-node-demo.sh
 ```
 
 ### Option 2: Ansible Automation
@@ -217,55 +215,51 @@ This project is licensed under the Apache 2.0 License - see the LICENSE file for
 
 ## Deployment Info (edge.unboxd.cloud)
 
-This README documents the deployed Edge Cloud Platform on edge.unboxd.cloud.
+This section reflects the current single-node demo state deployed on `edge.unboxd.cloud` on May 5, 2026.
 
-### Live Services
+### Current Node
 
-| Service | Port | HTTP | HTTPS |
-|---------|------|------|-------|
-| **Edge Console** | 8001 | ✅ | ✅:8443 |
-| **MicroCloud Agent API** | 8000 | ✅ | ✅:8443/api/* |
-| **Chat UI** | 3000 | ✅ | ✅:8443/chat/* |
+| Field | Value |
+|-------|-------|
+| Hostname | `edge` |
+| Public URL | `https://edge.unboxd.cloud:8443` |
+| Public IP | `31.97.206.43` |
+| OS | `Ubuntu 25.10` |
+| Architecture | `x86_64` |
+| Topology | `single-node demo` |
 
-### Quick Access (HTTPS recommended)
+### Installed Snaps
+
+| Snap | Channel |
+|------|---------|
+| `microcloud` | `2/stable` |
+| `lxd` | `5.21/stable` |
+| `microceph` | `squid/stable` |
+| `microovn` | `24.03/stable` |
+
+### Live Access
 
 ```bash
-# Chat UI (HTTPS)
+# LXD / MicroCloud web UI
 open https://edge.unboxd.cloud:8443
 
-# Agent health check
-curl https://edge.unboxd.cloud:8443/api/health
-
-# Documentation
-curl https://edge.unboxd.cloud:8443/docs/README.md
+# Cluster status
+microcloud status
+lxc cluster list
 ```
 
-### Agent Commands
+### Current Limitations
 
-```bash
-# Health check
-PYTHONPATH=src microcloud-agent health
+- This is a best-effort demo deployment on `Ubuntu 25.10`, not a documented supported MicroCloud base.
+- The node has no configured MicroCeph OSDs, so there is no usable distributed storage yet.
+- Full MicroCloud bootstrap hit a FAN networking failure on this VPS during cluster-wide device setup.
+- The UI endpoint is live, but this should not be treated as a production-ready MicroCloud deployment.
 
-# Run workflow
-PYTHONPATH=src microcloud-agent run assess_health --environment lab
+### Notes
 
-# Start API server
-PYTHONPATH=src microcloud-agent serve --host 0.0.0.0 --port 8000
-
-# Chat with agent
-PYTHONPATH=src microcloud-agent chat "what workflows do you support?"
-```
-
-### Environment Variables
-
-Set these for remote SSH execution:
-
-```bash
-export MICROCLOUD_SSH_TARGET=user@ microcloud-server
-export LXC_SSH_TARGET=user@ microcloud-server
-export OPERATOR_SSH_TARGET=user@host
-export PRIVILEGE_EXEC_PREFIX=sudo
-```
+- `microcloud status` reports the node `ONLINE`.
+- `lxc cluster list` reports `https://31.97.206.43:8443` as the active cluster endpoint.
+- Browser access uses LXD trust-based authentication rather than a separate app-specific login flow.
 
 ## Resources
 

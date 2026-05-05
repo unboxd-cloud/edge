@@ -72,10 +72,26 @@ SNAPS=(
     "microovn"
 )
 
-for snap in "${SNAPS[@]}"; do
-    log_info "Installing $snap..."
-    snap install "$snap" --classic --channel=latest/stable
-done
+install_or_refresh_snap() {
+    local snap_name="$1"
+    local snap_channel="$2"
+
+    if snap list "$snap_name" &>/dev/null; then
+        log_info "Refreshing $snap_name on $snap_channel..."
+        snap refresh "$snap_name" --channel="$snap_channel" --cohort="+"
+    else
+        log_info "Installing $snap_name from $snap_channel..."
+        snap install "$snap_name" --channel="$snap_channel" --cohort="+"
+    fi
+}
+
+install_or_refresh_snap "lxd" "5.21/stable"
+install_or_refresh_snap "microceph" "squid/stable"
+install_or_refresh_snap "microovn" "24.03/stable"
+install_or_refresh_snap "microcloud" "2/stable"
+
+log_info "Holding snap refreshes for cluster consistency..."
+snap refresh lxd microceph microovn microcloud --hold
 
 # Enable required kernel modules
 log_info "Enabling required kernel modules..."
@@ -160,7 +176,7 @@ log_info "Dependencies installation complete!"
 log_info "=============================================="
 echo ""
 log_info "Next steps:"
-log_info "  1. Initialize single node: sudo microcloud init"
+log_info "  1. One-command single-node demo: sudo ./scripts/deploy-single-node-demo.sh"
 log_info "  2. Or join cluster: sudo microcloud init --bootstrap-max=3"
 log_info ""
 log_info "For multi-node deployment, run this script on all nodes."
