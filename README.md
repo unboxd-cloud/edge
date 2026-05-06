@@ -104,6 +104,59 @@ sudo microcloud init --bootstrap-max=3
 └── SPEC.md                     # Project specification
 ```
 
+## Docker Usage
+
+You can run this repository in a containerized development environment.
+
+### Build the image
+
+```bash
+docker build -t edge-cloud-platform:local .
+```
+
+### Start dev shell
+
+```bash
+docker run --rm -it \
+  -v "$PWD:/workspace/project" \
+  --name edge-cloud-dev \
+  edge-cloud-platform:local
+```
+
+### Use Docker Compose profiles
+
+```bash
+# Start dev environment
+docker compose --profile dev up -d
+
+# Start docs server at http://localhost:8080
+docker compose --profile docs up -d
+
+# Validate compose setup
+docker compose config
+```
+
+> Note: running Snap-based MicroCloud components inside Docker is limited. Use containers for tooling, docs, and automation workflows.
+
+### Production hardening status
+
+This repository includes a **development-oriented** Docker setup and is **not a production runtime image** for MicroCloud services.
+
+Current hardening measures:
+- deterministic non-root user (`10001:10001`) without sudo access or a default password
+- minimized package install (`--no-install-recommends`) and cleaned apt cache
+- Ansible tooling installed in an isolated Python virtual environment under `/opt/ansible`
+- Compose services run with `no-new-privileges`, dropped Linux capabilities, and an init process
+- hardened docs container uses an unprivileged NGINX image, read-only filesystem, `tmpfs` writable paths, and a healthcheck
+- expanded `.dockerignore` coverage for secrets, local state, language caches, and Terraform state
+
+Before production use, additionally consider:
+- pinning image digests and enabling base image update automation
+- signed image provenance (for example, Sigstore/cosign)
+- container vulnerability scanning in CI (for example, Trivy/Grype)
+- runtime policy enforcement (seccomp/AppArmor/SELinux and network policies)
+- CI validation with `docker build`, `docker compose config`, and image scanning on every change
+
 ## Deployment Options
 
 ### Option 1: Manual Setup
