@@ -1,20 +1,36 @@
-# Docker ignore
+# Version control and local metadata
 .git
 .gitignore
-*.md
-LICENSE
-README.md
-.env*
-*.bak
-*.backup
-*.log
-.DS_Store
- Thumbs.db
+.github
 .vscode/
 .idea/
-*.pyc
+.DS_Store
+Thumbs.db
+
+# Local environment and secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Logs, temp files, and editor swap files
+*.log
+*.tmp
+*.bak
+*.backup
+*.swp
+*.swo
+
+# Language and tool caches
 __pycache__/
+*.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ansible/
 node_modules/
 vendor/
 target/
@@ -23,6 +39,8 @@ build/
 *.egg-info/
 .coverage
 htmlcov/
+
+# Terraform state and local provider cache
 .terraform/
 *.tfstate
 *.tfstate.*
